@@ -4,13 +4,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Internal imports
 from dbconn import startup_client, close_client
-from routers import users
+from routers import users, polls
 
 # FastAPI App Initialization
 app = FastAPI(title="QuickPoll API")
 
 # Include routers
 app.include_router(users.router)
+app.include_router(polls.router)
 
 # Configure CORS (Cross-Origin Resource Sharing)
 app.add_middleware(

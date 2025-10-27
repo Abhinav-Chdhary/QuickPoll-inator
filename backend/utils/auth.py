@@ -20,7 +20,7 @@ pwd_hash = PasswordHash(
 # JWT Configuration
 SECRET_KEY: Optional[str] = config.get("SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 
 
 # Password Hashing

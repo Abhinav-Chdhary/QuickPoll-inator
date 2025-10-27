@@ -102,7 +102,7 @@ class TokenResponse(BaseModel):
 class PollCreate(BaseModel):
     """Data model for creating a new Poll."""
 
-    text: str = Field(..., min_length=5, max_length=280)
+    text: str = Field(..., min_length=3, max_length=300)
 
 
 class PollInDB(MongoBaseModel):
@@ -140,3 +140,22 @@ class PollOptionResponse(PollOptionInDB):
     """Data model for API responses."""
 
     pass
+
+
+# Poll Like Action Schema
+class PollLikeActionInDB(MongoBaseModel):
+    """Tracks a single 'like' action by a user on a poll."""
+
+    poll_id: str
+    user_id: str  # The ID of the user who liked the poll
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Poll Vote Action Schema
+class PollVoteActionInDB(MongoBaseModel):
+    """Tracks a single 'vote' action by a user on a poll option."""
+
+    poll_id: str
+    poll_option_id: str
+    user_id: str  # The ID of the user who voted
+    created_at: datetime = Field(default_factory=datetime.utcnow)

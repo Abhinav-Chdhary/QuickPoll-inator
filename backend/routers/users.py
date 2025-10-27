@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime
 
-# Import your models
+# Import models
 from models.mongo_models import (
     UserCreate,
     UserResponse,

@@ -1,4 +1,4 @@
-// src/app/login/page.tsx
+// src/app/poll/page.tsx
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

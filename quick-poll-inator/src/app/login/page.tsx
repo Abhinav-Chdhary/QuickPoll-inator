@@ -132,13 +132,20 @@ export default function AuthPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
+        {/* Tabs */}
         <Tabs defaultValue="login" className="w-[400px]">
+          {/* Card */}
           <Card className="shadow-lg">
+            {/* Card Header */}
             <CardHeader>
+              {/* Tabs List */}
               <TabsList className="grid w-full grid-cols-2">
+                {/* Login Tab header */}
                 <TabsTrigger value="login" onClick={() => setApiError(null)}>
                   Login
                 </TabsTrigger>
+
+                {/* Register Tab header */}
                 <TabsTrigger value="register" onClick={() => setApiError(null)}>
                   Register
                 </TabsTrigger>
@@ -153,6 +160,7 @@ export default function AuthPage() {
                     onSubmit={loginForm.handleSubmit(onLoginSubmit)}
                     className="space-y-4"
                   >
+                    {/* Email field */}
                     <FormField
                       control={loginForm.control}
                       name="email_id"
@@ -170,6 +178,8 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Password field */}
                     <FormField
                       control={loginForm.control}
                       name="password"
@@ -188,9 +198,13 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Error message */}
                     {apiError && (
                       <p className="text-sm text-destructive">{apiError}</p>
                     )}
+
+                    {/* Submit button */}
                     <Button
                       type="submit"
                       className="w-full"
@@ -214,6 +228,7 @@ export default function AuthPage() {
                     onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
                     className="space-y-4"
                   >
+                    {/* Name field */}
                     <FormField
                       control={registerForm.control}
                       name="name"
@@ -231,6 +246,8 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Email field */}
                     <FormField
                       control={registerForm.control}
                       name="email_id"
@@ -248,6 +265,8 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Password field */}
                     <FormField
                       control={registerForm.control}
                       name="password"
@@ -266,9 +285,13 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Error message */}
                     {apiError && (
                       <p className="text-sm text-destructive">{apiError}</p>
                     )}
+
+                    {/* Submit button */}
                     <Button
                       type="submit"
                       className="w-full"

@@ -1,4 +1,4 @@
-// src/components/02_molecules/input.tsx
+// src/components/ui/input.tsx
 import * as React from "react";
 
 import { cn } from "@/lib/utils";

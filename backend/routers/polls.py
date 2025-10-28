@@ -38,6 +38,9 @@ from utils.database import (
     delete_vote_action_in_db,
 )
 
+# Import websocket manager
+from routers.websocket import manager
+
 router = APIRouter(prefix="/polls", tags=["polls"])
 
 # Security scheme for protected routes
@@ -126,6 +129,17 @@ async def create_poll_option(
     if result.inserted_id:
         # Fetch the new option to return it
         new_option = await get_poll_option_by_id_from_db(result.inserted_id)
+
+        # Fetch the *entire* updated poll to broadcast
+        updated_poll_dict = await load_poll_with_options(valid_poll_id, poll_id)
+        if updated_poll_dict:
+            # Convert to model and dump to JSON
+            poll_model = PollResponse(**updated_poll_dict)
+            serializable_data = poll_model.model_dump(mode="json", by_alias=True)
+            await manager.broadcast_json(
+                {"type": "poll_updated", "data": serializable_data}
+            )
+
         return new_option
 
     raise HTTPException(
@@ -208,6 +222,17 @@ async def toggle_poll_option_vote(
 
     # Fetch the newly updated option and return it
     final_option = await get_poll_option_by_id_from_db(valid_option_id)
+
+    # Fetch the *entire* updated poll to broadcast
+    updated_poll_dict = await load_poll_with_options(valid_poll_id, poll_id)
+    if updated_poll_dict:
+        # Convert to model and dump to JSON-safe dict
+        poll_model = PollResponse(**updated_poll_dict)
+        serializable_data = poll_model.model_dump(mode="json", by_alias=True)
+        await manager.broadcast_json(
+            {"type": "poll_updated", "data": serializable_data}
+        )
+
     return final_option
 
 
@@ -274,14 +299,25 @@ async def create_poll(
     if result.inserted_id:
         # Use the ID from the result to fetch the new poll
         new_poll = await get_poll_by_id_from_db(result.inserted_id)
+
+        # If the poll was not created, raise an error
+        if not new_poll:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create poll",
+            )
+
+        # Broadcast poll creation update
+        if new_poll:
+            # Convert to model and dump to JSON-safe dict
+            poll_model = PollResponse(**new_poll)
+            serializable_data = poll_model.model_dump(mode="json", by_alias=True)
+            await manager.broadcast_json(
+                {"type": "poll_created", "data": serializable_data}
+            )
+
         # Return the poll document, NOT the 'result' object
         return new_poll
-
-    if not new_poll:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create poll",
-        )
 
     return new_poll
 
@@ -342,4 +378,14 @@ async def toggle_poll_like(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Poll not found after like update",
         )
+
+    # Broadcast the updated poll
+    if updated:
+        # Convert to model and dump to JSON-safe dict
+        poll_model = PollResponse(**updated)
+        serializable_data = poll_model.model_dump(mode="json", by_alias=True)
+        await manager.broadcast_json(
+            {"type": "poll_updated", "data": serializable_data}
+        )
+
     return updated

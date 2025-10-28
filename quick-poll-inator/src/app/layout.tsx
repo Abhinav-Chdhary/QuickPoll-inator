@@ -1,5 +1,8 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+// Context
+import { PollsProvider } from "@/context/PollsContext";
 // Components
 import { Header } from "@/components/Header";
 // Styles
@@ -30,8 +33,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header />
-        {children}
+        {/* Wrap the app with PollsProvider */}
+        <PollsProvider>
+          <Header />
+          {children}
+        </PollsProvider>
       </body>
     </html>
   );

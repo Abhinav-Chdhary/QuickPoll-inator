@@ -1,46 +1,18 @@
 // src/app/page.tsx
 "use client";
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 // Helpers
-import { API_URL } from "@/components/helpers/constants";
-import { PollResponse } from "@/components/helpers/types/Poll";
+import { usePolls } from "@/context/PollsContext";
 // Components
 import ProtectedRoute from "@/components/ProtectedRoutes";
 import PollCard from "@/components/ui/02_molecules/pollCard";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const [polls, setPolls] = useState<PollResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch polls on page load
-  useEffect(() => {
-    const fetchPolls = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`${API_URL}/polls/`);
-
-        if (!res.ok) {
-          const errData = await res.json();
-          console.log(errData.detail || "Failed to fetch polls");
-        }
-
-        const data: PollResponse[] = await res.json();
-        setPolls(data);
-      } catch (error: any) {
-        setError(error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPolls();
-  }, []);
+  // Import from PollsContext
+  const { polls, isLoading, error } = usePolls();
 
   // Render content based on state
   const renderContent = () => {

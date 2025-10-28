@@ -7,6 +7,7 @@ import { Heart, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 // Helpers
 import { API_URL } from "@/components/helpers/constants";
+import { usePolls } from "@/context/PollsContext";
 // Components
 import ProtectedRoute from "@/components/ProtectedRoutes";
 import {
@@ -26,11 +27,15 @@ export default function PollDetailPage() {
   // Get poll_id from URL
   const poll_id = params.poll_id as string;
 
+  // Poll related states
   const [poll, setPoll] = useState<PollResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get polls list from context
+  const { polls: globalPolls } = usePolls();
 
   // Data Fetching
   const fetchPoll = async () => {
@@ -58,6 +63,17 @@ export default function PollDetailPage() {
     fetchPoll();
   }, [poll_id]);
 
+  // Effect to sync local state with context
+  useEffect(() => {
+    // Find poll in the global list
+    const updatedPollFromContext = globalPolls.find((p) => p._id === poll_id);
+
+    // If poll is found, update local state
+    if (updatedPollFromContext) {
+      setPoll(updatedPollFromContext);
+    }
+  }, [globalPolls, poll_id]);
+
   // Event Handlers
   const handleVote = async (optionId: string) => {
     // This calls POST /{poll_id}/options/{option_id}/vote
@@ -84,9 +100,6 @@ export default function PollDetailPage() {
         console.log(data.detail || "Failed to cast vote");
       }
 
-      // Vote was successful, update the UI
-      // We refetch the poll to get the latest vote counts
-      await fetchPoll();
       // Set the selected option in the UI
       setSelectedOptionId(optionId);
     } catch (error: any) {
@@ -118,9 +131,6 @@ export default function PollDetailPage() {
       if (!res.ok) {
         console.log(data || "Failed to update like");
       }
-
-      // Update the poll state with the new like count
-      setPoll(data);
     } catch (error: any) {
       setError(error.message);
     } finally {

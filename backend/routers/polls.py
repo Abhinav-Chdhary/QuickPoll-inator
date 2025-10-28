@@ -10,6 +10,7 @@ from models.mongo_models import (
     PollInDB,
     PollResponse,
     PyObjectId,
+    PollLikeActionInDB,
 )
 
 # Import auth utilities
@@ -20,6 +21,10 @@ from utils.database import (
     get_all_polls_from_db,
     get_poll_by_id_from_db,
     create_poll_in_db,
+    update_poll_likes_in_db,
+    get_like_action_from_db,
+    create_like_action_in_db,
+    delete_like_action_in_db,
 )
 
 router = APIRouter(prefix="/polls", tags=["polls"])
@@ -38,7 +43,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
     payload = decode_access_token(token)
 
     user_id = payload.get("user_id")
-    
+
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -82,7 +87,9 @@ async def get_poll_by_id(poll_id: str):
 
 
 # Route to create a poll
-@router.post("/create", response_model=PollResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/create", response_model=PollResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_poll(
     poll_data: PollCreate,
     user_id: str = Depends(get_current_user_id),
@@ -121,63 +128,70 @@ async def create_poll(
     return new_poll
 
 
-# # Route to toggle liking of a poll
-# @router.post("/{poll_id}/like", response_model=PollResponse)
-# async def toggle_poll_like(
-#     poll_id: str,
-#     user_id: str = Depends(get_current_user_id),
-# ):
-#     """
-#     Toggle a 'like' on a poll.
-#     If the user has already liked the poll, it will be 'unliked'.
-#     If the user has not liked it, it will be 'liked'.
-#     Requires authentication.
-#     """
-#     try:
-#         # Validate the ObjectId format
-#         valid_poll_id = PyObjectId(poll_id)
-#     except ValueError:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Poll ID format"
-#         )
+# Route to toggle liking of a poll
+@router.post("/{poll_id}/like", response_model=PollResponse)
+async def toggle_poll_like(
+    poll_id: str,
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Toggle a 'like' on a poll.
+    If the user has already liked the poll, it will be 'unliked'.
+    If the user has not liked it, it will be 'liked'.
+    Requires authentication.
+    """
+    try:
+        # Validate the ObjectId format
+        valid_poll_id = PyObjectId(poll_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Poll ID format"
+        )
 
-#     # 1. Check if the poll exists
-#     poll = await get_poll_by_id_from_db(valid_poll_id)
-#     if not poll:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found"
-#         )
+    # Check if the poll exists
+    poll = await get_poll_by_id_from_db(valid_poll_id)
+    if not poll:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found"
+        )
 
-#     # 2. Check if the user has already liked this poll
-#     # We use poll_id (str) and user_id (str) as defined in PollLikeActionInDB
-#     existing_like = await get_like_action_from_db(user_id=user_id, poll_id=poll_id)
+    # Check if the user has already liked this poll
+    existing_like = await get_like_action_from_db(user_id=user_id, poll_id=poll_id)
 
-#     if existing_like:
-#         # --- UNLIKE ---
-#         # 3a. Delete the like action
-#         await delete_like_action_in_db(existing_like["_id"])
+    update_result = None
 
-#         # 4a. Decrement the poll's like count
-#         updated_poll = await update_poll_likes_in_db(valid_poll_id, -1)
+    if existing_like:
+        # UNLIKE: Delete the like action
+        await delete_like_action_in_db(existing_like["_id"])
 
-#     else:
-#         # --- LIKE ---
-#         # 3b. Create a new like action document
-#         like_doc = PollLikeActionInDB(
-#             poll_id=poll_id,
-#             user_id=user_id,
-#             created_at=datetime.utcnow(),
-#         )
-#         like_dict = like_doc.model_dump(by_alias=True, exclude=["id"])
-#         await create_like_action_in_db(like_dict)
+        # Decrement the poll's like count
+        update_result = await update_poll_likes_in_db(valid_poll_id, -1)
 
-#         # 4b. Increment the poll's like count
-#         updated_poll = await update_poll_likes_in_db(valid_poll_id, 1)
+    else:
+        # LIKE: Create a new like action document
+        like_doc = PollLikeActionInDB(
+            poll_id=poll_id,
+            user_id=user_id,
+            created_at=datetime.utcnow(),
+        )
+        like_dict = like_doc.model_dump(by_alias=True, exclude=["id"])
+        await create_like_action_in_db(like_dict)
 
-#     if not updated_poll:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="Failed to update poll like count",
-#         )
+        # 4b. Increment the poll's like count
+        update_result = await update_poll_likes_in_db(valid_poll_id, 1)
 
-#     return updated_poll
+    # Check if the update operation actually modified anything
+    if not update_result or update_result.modified_count == 0:
+        # This might happen in a race condition, but we'll fetch the poll anyway
+        pass
+
+    # Fetch the updated poll to return the latest state
+    updated_poll_document = await get_poll_by_id_from_db(valid_poll_id)
+
+    if not updated_poll_document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Poll not found after like update",
+        )
+
+    return updated_poll_document

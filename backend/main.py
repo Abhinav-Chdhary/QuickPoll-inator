@@ -1,6 +1,7 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import dotenv_values
 
 # Internal imports
 from dbconn import startup_client, close_client
@@ -14,10 +15,14 @@ app.include_router(users.router)
 app.include_router(polls.router)
 app.include_router(websocket.router)
 
+# Load env variables
+config = dotenv_values(".env")
+FRONTEND_URL = config.get("FRONTEND_URL")
+
 # Configure CORS (Cross-Origin Resource Sharing)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this to your frontend's domain
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

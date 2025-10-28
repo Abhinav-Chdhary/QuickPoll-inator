@@ -47,7 +47,7 @@ export default function PollDetailPage() {
       const res = await fetch(`${API_URL}/polls/${poll_id}`);
       if (!res.ok) {
         const errData = await res.json();
-        console.log(errData.detail || "Failed to fetch poll");
+        throw new Error(errData.detail || "Failed to fetch poll");
       }
       const data: PollResponse = await res.json();
       setPoll(data);
@@ -97,7 +97,7 @@ export default function PollDetailPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        console.log(data.detail || "Failed to cast vote");
+        throw new Error(data.detail || "Failed to cast vote");
       }
 
       // Set the selected option in the UI
@@ -127,9 +127,9 @@ export default function PollDetailPage() {
         },
       });
 
-      const data: PollResponse = await res.json();
+      const data = await res.json();
       if (!res.ok) {
-        console.log(data || "Failed to update like");
+        throw new Error(data.detail || "Failed to update like");
       }
     } catch (error: any) {
       setError(error.message);

@@ -26,8 +26,13 @@ import {
 
 export default function AuthPage() {
   const router = useRouter();
+
+  // States for login
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  // State to control the active tab
+  const [activeTab, setActiveTab] = useState("login");
 
   // Effect to navigate user to home page if logged in
   useEffect(() => {
@@ -85,12 +90,24 @@ export default function AuthPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        console.log(data.detail || "Login failed. Please try again.");
+        if (res.status === 404) {
+          // Set API error
+          setApiError(data.detail || "User not found. Please register.");
+
+          // Prefill the register form with the login email
+          registerForm.setValue("email_id", values.email_id);
+          setActiveTab("register");
+        } else {
+          setApiError(data.detail || "Login failed. Please try again.");
+        }
+        throw new Error(data.detail);
       }
 
       handleAuthSuccess(data);
     } catch (error: any) {
-      setApiError(error.message);
+      if (!apiError) {
+        setApiError(error.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +128,9 @@ export default function AuthPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        console.log(data.detail || "Registration failed. Please try again.");
+        throw new Error(
+          data.detail || "Registration failed. Please try again."
+        );
       }
 
       // Automatically log the user in after successful registration
@@ -131,7 +150,14 @@ export default function AuthPage() {
         transition={{ duration: 0.4 }}
       >
         {/* Tabs */}
-        <Tabs defaultValue="login" className="w-[400px]">
+        <Tabs
+          defaultValue={activeTab}
+          onValueChange={(value) => {
+            setActiveTab(value);
+            setApiError(null);
+          }}
+          className="w-[400px]"
+        >
           {/* Card */}
           <Card className="shadow-lg">
             {/* Card Header */}

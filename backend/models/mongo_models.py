@@ -2,7 +2,7 @@
 from pydantic import BaseModel, Field, EmailStr, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
-from typing import Optional, Any
+from typing import Optional, Any, List
 from datetime import datetime
 from bson import ObjectId
 
@@ -98,28 +98,6 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
-# Poll Schema
-class PollCreate(BaseModel):
-    """Data model for creating a new Poll."""
-
-    text: str = Field(..., min_length=3, max_length=300)
-
-
-class PollInDB(MongoBaseModel):
-    """Data model for a Poll document stored in MongoDB."""
-
-    text: str
-    likes: int = Field(default=0, ge=0)
-    creator_id: str  # ID of the User who created the poll
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-
-class PollResponse(PollInDB):
-    """Data model for API responses."""
-
-    pass
-
-
 # Poll Option Schema
 class PollOptionCreate(BaseModel):
     """Data model for creating a new Poll Option."""
@@ -142,6 +120,29 @@ class PollOptionResponse(PollOptionInDB):
     pass
 
 
+# Poll Schema
+class PollCreate(BaseModel):
+    """Data model for creating a new Poll."""
+
+    text: str = Field(..., min_length=3, max_length=300)
+
+
+class PollInDB(MongoBaseModel):
+    """Data model for a Poll document stored in MongoDB."""
+
+    text: str
+    likes: int = Field(default=0, ge=0)
+    creator_id: str  # ID of the User who created the poll
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PollResponse(PollInDB):
+    """Data model for API responses."""
+
+    # This field will be populated manually in the route
+    options: List[PollOptionResponse] = Field(default_factory=list)
+
+
 # Poll Like Action Schema
 class PollLikeActionInDB(MongoBaseModel):
     """Tracks a single 'like' action by a user on a poll."""
@@ -159,3 +160,6 @@ class PollVoteActionInDB(MongoBaseModel):
     poll_option_id: str
     user_id: str  # The ID of the user who voted
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+PollResponse.model_rebuild()

@@ -118,6 +118,16 @@ async def update_poll_option_votes_in_db(option_id: PyObjectId, increment: int):
     return result
 
 
+async def get_options_for_poll_from_db(poll_id: str):
+    """Get all options for a specific poll by poll_id (string)."""
+    db = get_database()
+    poll_options_collection = db["poll_options"]
+    # Find all options matching the poll_id, return as a list
+    # Using .to_list(None) fetches all documents
+    options = await poll_options_collection.find({"poll_id": poll_id}).to_list(None)
+    return options
+
+
 # POLL VOTE ACTION
 async def get_vote_action_by_poll_from_db(user_id: str, poll_id: str):
     """

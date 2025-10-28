@@ -29,6 +29,7 @@ from utils.database import (
     get_like_action_from_db,
     create_like_action_in_db,
     delete_like_action_in_db,
+    get_options_for_poll_from_db,
     create_poll_option_in_db,
     get_poll_option_by_id_from_db,
     update_poll_option_votes_in_db,
@@ -63,150 +64,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
     return user_id
 
 
-# Route to fetch all polls
-@router.get("/", response_model=List[PollResponse])
-async def get_all_polls():
-    """
-    Retrieve all polls from the database.
-    """
-    polls_list = await get_all_polls_from_db()
-    return polls_list
-
-
-# Route to fetch poll by id
-@router.get("/{poll_id}", response_model=PollResponse)
-async def get_poll_by_id(poll_id: str):
-    """
-    Retrieve a single poll by its ID.
-    """
-    try:
-        # Validate the ObjectId format
-        valid_id = PyObjectId(poll_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Poll ID format"
-        )
-
-    poll = await get_poll_by_id_from_db(valid_id)
-
-    if not poll:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found"
-        )
-    return poll
-
-
-# Route to create a poll
-@router.post(
-    "/create", response_model=PollResponse, status_code=status.HTTP_201_CREATED
-)
-async def create_poll(
-    poll_data: PollCreate,
-    user_id: str = Depends(get_current_user_id),
-):
-    """
-    Create a new poll. Requires authentication.
-
-    - **text**: The poll question/text (min 5, max 280 characters).
-    """
-    # Create the PollInDB document
-    poll_doc = PollInDB(
-        text=poll_data.text,
-        creator_id=user_id,
-        created_at=datetime.utcnow(),
-        likes=0,
-    )
-
-    # Convert to dict for database insertion, excluding 'id'
-    poll_dict = poll_doc.model_dump(by_alias=True, exclude=["id"])
-
-    # Insert into database
-    result = await create_poll_in_db(poll_dict)
-
-    if result.inserted_id:
-        # Use the ID from the result to fetch the new poll
-        new_poll = await get_poll_by_id_from_db(result.inserted_id)
-        # Return the poll document, NOT the 'result' object
-        return new_poll
-
-    if not new_poll:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create poll",
-        )
-
-    return new_poll
-
-
-# Route to toggle liking of a poll
-@router.post("/{poll_id}/like", response_model=PollResponse)
-async def toggle_poll_like(
-    poll_id: str,
-    user_id: str = Depends(get_current_user_id),
-):
-    """
-    Toggle a 'like' on a poll.
-    If the user has already liked the poll, it will be 'unliked'.
-    If the user has not liked it, it will be 'liked'.
-    Requires authentication.
-    """
-    try:
-        # Validate the ObjectId format
-        valid_poll_id = PyObjectId(poll_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Poll ID format"
-        )
-
-    # Check if the poll exists
-    poll = await get_poll_by_id_from_db(valid_poll_id)
-    if not poll:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found"
-        )
-
-    # Check if the user has already liked this poll
-    existing_like = await get_like_action_from_db(user_id=user_id, poll_id=poll_id)
-
-    update_result = None
-
-    if existing_like:
-        # UNLIKE: Delete the like action
-        await delete_like_action_in_db(existing_like["_id"])
-
-        # Decrement the poll's like count
-        update_result = await update_poll_likes_in_db(valid_poll_id, -1)
-
-    else:
-        # LIKE: Create a new like action document
-        like_doc = PollLikeActionInDB(
-            poll_id=poll_id,
-            user_id=user_id,
-            created_at=datetime.utcnow(),
-        )
-        like_dict = like_doc.model_dump(by_alias=True, exclude=["id"])
-        await create_like_action_in_db(like_dict)
-
-        # 4b. Increment the poll's like count
-        update_result = await update_poll_likes_in_db(valid_poll_id, 1)
-
-    # Check if the update operation actually modified anything
-    if not update_result or update_result.modified_count == 0:
-        # This might happen in a race condition, but we'll fetch the poll anyway
-        pass
-
-    # Fetch the updated poll to return the latest state
-    updated_poll_document = await get_poll_by_id_from_db(valid_poll_id)
-
-    if not updated_poll_document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Poll not found after like update",
-        )
-
-    return updated_poll_document
-
-
+# POLL OPTIONS
 # Route to create a poll option
 @router.post(
     "/{poll_id}/options",
@@ -341,3 +199,156 @@ async def toggle_poll_option_vote(
     # Fetch the newly updated option and return it
     final_option = await get_poll_option_by_id_from_db(valid_option_id)
     return final_option
+
+
+# POLLS
+# Route to fetch all polls
+@router.get("/", response_model=List[PollResponse])
+async def get_all_polls():
+    """
+    Retrieve all polls from the database.
+    """
+    polls_list = await get_all_polls_from_db()
+    return polls_list
+
+
+# Route to fetch poll by id
+@router.get("/{poll_id}", response_model=PollResponse)
+async def get_poll_by_id(poll_id: str):
+    """
+    Retrieve a single poll by its ID.
+    """
+    try:
+        # Validate the ObjectId format
+        valid_id = PyObjectId(poll_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Poll ID format"
+        )
+
+    poll = await get_poll_by_id_from_db(valid_id)
+
+    if not poll:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found"
+        )
+
+    # Fetch the options for this poll
+    options_list = await get_options_for_poll_from_db(poll_id)
+
+    # Add the options list to the poll dictionary
+    poll["options"] = options_list
+
+    # Return the combined dictionary.
+    return poll
+
+
+# Route to create a poll
+@router.post(
+    "/create", response_model=PollResponse, status_code=status.HTTP_201_CREATED
+)
+async def create_poll(
+    poll_data: PollCreate,
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Create a new poll. Requires authentication.
+
+    - **text**: The poll question/text (min 5, max 280 characters).
+    """
+    # Create the PollInDB document
+    poll_doc = PollInDB(
+        text=poll_data.text,
+        creator_id=user_id,
+        created_at=datetime.utcnow(),
+        likes=0,
+    )
+
+    # Convert to dict for database insertion, excluding 'id'
+    poll_dict = poll_doc.model_dump(by_alias=True, exclude=["id"])
+
+    # Insert into database
+    result = await create_poll_in_db(poll_dict)
+
+    if result.inserted_id:
+        # Use the ID from the result to fetch the new poll
+        new_poll = await get_poll_by_id_from_db(result.inserted_id)
+        # Return the poll document, NOT the 'result' object
+        return new_poll
+
+    if not new_poll:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create poll",
+        )
+
+    return new_poll
+
+
+# Route to toggle liking of a poll
+@router.post("/{poll_id}/like", response_model=PollResponse)
+async def toggle_poll_like(
+    poll_id: str,
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Toggle a 'like' on a poll.
+    If the user has already liked the poll, it will be 'unliked'.
+    If the user has not liked it, it will be 'liked'.
+    Requires authentication.
+    """
+    try:
+        # Validate the ObjectId format
+        valid_poll_id = PyObjectId(poll_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Poll ID format"
+        )
+
+    # Check if the poll exists
+    poll = await get_poll_by_id_from_db(valid_poll_id)
+    if not poll:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found"
+        )
+
+    # Check if the user has already liked this poll
+    existing_like = await get_like_action_from_db(user_id=user_id, poll_id=poll_id)
+
+    update_result = None
+
+    if existing_like:
+        # UNLIKE: Delete the like action
+        await delete_like_action_in_db(existing_like["_id"])
+
+        # Decrement the poll's like count
+        update_result = await update_poll_likes_in_db(valid_poll_id, -1)
+
+    else:
+        # LIKE: Create a new like action document
+        like_doc = PollLikeActionInDB(
+            poll_id=poll_id,
+            user_id=user_id,
+            created_at=datetime.utcnow(),
+        )
+        like_dict = like_doc.model_dump(by_alias=True, exclude=["id"])
+        await create_like_action_in_db(like_dict)
+
+        # 4b. Increment the poll's like count
+        update_result = await update_poll_likes_in_db(valid_poll_id, 1)
+
+    # Check if the update operation actually modified anything
+    if not update_result or update_result.modified_count == 0:
+        # This might happen in a race condition, but we'll fetch the poll anyway
+        pass
+
+    # Fetch the updated poll to return the latest state
+    updated_poll_document = await get_poll_by_id_from_db(valid_poll_id)
+
+    if not updated_poll_document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Poll not found after like update",
+        )
+
+    return updated_poll_document

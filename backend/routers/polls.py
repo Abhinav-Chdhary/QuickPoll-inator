@@ -64,6 +64,16 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
     return user_id
 
 
+# Helper function to load poll with options
+async def load_poll_with_options(valid_poll_id: PyObjectId, poll_id_str: str):
+    poll = await get_poll_by_id_from_db(valid_poll_id)
+    if not poll:
+        return None
+    options_list = await get_options_for_poll_from_db(poll_id_str)
+    poll["options"] = options_list
+    return poll
+
+
 # POLL OPTIONS
 # Route to create a poll option
 @router.post(
@@ -226,20 +236,11 @@ async def get_poll_by_id(poll_id: str):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Poll ID format"
         )
 
-    poll = await get_poll_by_id_from_db(valid_id)
-
+    poll = await load_poll_with_options(valid_id, poll_id)
     if not poll:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Poll not found"
         )
-
-    # Fetch the options for this poll
-    options_list = await get_options_for_poll_from_db(poll_id)
-
-    # Add the options list to the poll dictionary
-    poll["options"] = options_list
-
-    # Return the combined dictionary.
     return poll
 
 
@@ -315,14 +316,12 @@ async def toggle_poll_like(
     # Check if the user has already liked this poll
     existing_like = await get_like_action_from_db(user_id=user_id, poll_id=poll_id)
 
-    update_result = None
-
     if existing_like:
         # UNLIKE: Delete the like action
         await delete_like_action_in_db(existing_like["_id"])
 
         # Decrement the poll's like count
-        update_result = await update_poll_likes_in_db(valid_poll_id, -1)
+        await update_poll_likes_in_db(valid_poll_id, -1)
 
     else:
         # LIKE: Create a new like action document
@@ -335,20 +334,12 @@ async def toggle_poll_like(
         await create_like_action_in_db(like_dict)
 
         # 4b. Increment the poll's like count
-        update_result = await update_poll_likes_in_db(valid_poll_id, 1)
+        await update_poll_likes_in_db(valid_poll_id, 1)
 
-    # Check if the update operation actually modified anything
-    if not update_result or update_result.modified_count == 0:
-        # This might happen in a race condition, but we'll fetch the poll anyway
-        pass
-
-    # Fetch the updated poll to return the latest state
-    updated_poll_document = await get_poll_by_id_from_db(valid_poll_id)
-
-    if not updated_poll_document:
+    updated = await load_poll_with_options(valid_poll_id, poll_id)
+    if not updated:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Poll not found after like update",
         )
-
-    return updated_poll_document
+    return updated

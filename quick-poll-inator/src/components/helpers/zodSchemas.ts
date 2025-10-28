@@ -22,3 +22,23 @@ export const registerSchema = z.object({
     message: "Password must be at least 8 characters.",
   }),
 });
+
+// Zod schema for poll creation validation
+export const pollFormSchema = z.object({
+  pollText: z.string().min(3, {
+    message: "Poll question must be at least 3 characters.",
+  }).max(300, {
+    message: "Poll question must not exceed 300 characters.",
+  }),
+  options: z.array(
+    z.object({
+      text: z.string().min(1, {
+        message: "Option text cannot be empty.",
+      }).max(100, {
+        message: "Option text must not exceed 100 characters.",
+      }),
+    })
+  ).min(2, {
+    message: "You must provide at least 2 options.",
+  }),
+});

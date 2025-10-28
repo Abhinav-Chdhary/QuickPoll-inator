@@ -85,7 +85,7 @@ export default function AuthPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.detail || "Login failed. Please try again.");
+        console.log(data.detail || "Login failed. Please try again.");
       }
 
       handleAuthSuccess(data);
@@ -111,9 +111,7 @@ export default function AuthPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(
-          data.detail || "Registration failed. Please try again."
-        );
+        console.log(data.detail || "Registration failed. Please try again.");
       }
 
       // Automatically log the user in after successful registration

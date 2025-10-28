@@ -2,13 +2,15 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Heart, Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
+import Link from "next/link";
 // Helpers
 import { API_URL } from "@/components/helpers/constants";
 import { PollResponse } from "@/components/helpers/types/Poll";
 // Components
 import ProtectedRoute from "@/components/ProtectedRoutes";
 import PollCard from "@/components/ui/02_molecules/pollCard";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [polls, setPolls] = useState<PollResponse[]>([]);
@@ -25,7 +27,7 @@ export default function Home() {
 
         if (!res.ok) {
           const errData = await res.json();
-          throw new Error(errData.detail || "Failed to fetch polls");
+          console.log(errData.detail || "Failed to fetch polls");
         }
 
         const data: PollResponse[] = await res.json();
@@ -65,10 +67,15 @@ export default function Home() {
     // No polls found state
     if (polls.length === 0) {
       return (
-        <div className="text-center py-20 text-muted-foreground">
-          <p>No polls found.</p>
+        <div className="text-center py-20 text-muted-foreground space-y-4">
+          <p className="text-lg">No polls found.</p>
           <p>Why not be the first to create one?</p>
-          {/* You could add a <Button> to create a poll here */}
+          <Button asChild>
+            <Link href="/poll/create">
+              <Plus className="h-4 w-4 mr-2" />
+              Make your own
+            </Link>
+          </Button>
         </div>
       );
     }
@@ -91,14 +98,27 @@ export default function Home() {
         transition={{ duration: 0.4 }}
         className="container mx-auto max-w-2xl py-10 px-4" // Centered layout
       >
-        <div className="mb-8">
-          {/* Title */}
-          <h1 className="text-3xl font-bold tracking-tight">Home Feed</h1>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            {/* Title */}
+            <h1 className="text-3xl font-bold tracking-tight">Home Feed</h1>
 
-          {/* Description */}
-          <p className="text-muted-foreground">
-            See what the community is polling about.
-          </p>
+            {/* Description */}
+            <p className="text-muted-foreground">
+              See what the community is polling about.
+            </p>
+          </div>
+
+          {/* Create Poll Button */}
+          <Button asChild className="shrink-0">
+            {/* Link */}
+            <Link href="/poll/create">
+              {/* Icon */}
+              <Plus className="h-4 w-4 mr-2" />
+              {/* Text */}
+              Make your own
+            </Link>
+          </Button>
         </div>
 
         {renderContent()}

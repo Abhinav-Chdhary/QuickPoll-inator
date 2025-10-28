@@ -42,7 +42,7 @@ export default function PollDetailPage() {
       const res = await fetch(`${API_URL}/polls/${poll_id}`);
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.detail || "Failed to fetch poll");
+        console.log(errData.detail || "Failed to fetch poll");
       }
       const data: PollResponse = await res.json();
       setPoll(data);
@@ -81,7 +81,7 @@ export default function PollDetailPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.detail || "Failed to cast vote");
+        console.log(data.detail || "Failed to cast vote");
       }
 
       // Vote was successful, update the UI

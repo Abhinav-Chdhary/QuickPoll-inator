@@ -1,11 +1,15 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import dotenv_values
+from dotenv import load_dotenv
+import os
 
 # Internal imports
 from dbconn import startup_client, close_client
 from routers import users, polls, websocket
+
+# Load env variables
+load_dotenv()
 
 # FastAPI App Initialization
 app = FastAPI(title="QuickPoll API")
@@ -15,9 +19,8 @@ app.include_router(users.router)
 app.include_router(polls.router)
 app.include_router(websocket.router)
 
-# Load env variables
-config = dotenv_values(".env")
-FRONTEND_URL = config.get("FRONTEND_URL")
+# Get frontend url from env
+FRONTEND_URL = os.environ.get("FRONTEND_URL")
 
 # Configure CORS (Cross-Origin Resource Sharing)
 app.add_middleware(

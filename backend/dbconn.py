@@ -1,15 +1,16 @@
 # dbconn.py
 from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import dotenv_values
+from dotenv import load_dotenv
+import os
 from typing import Optional
 
-# Load configuration from .env file
-config = dotenv_values(".env")
+# Load env variables
+load_dotenv()
 
 # --- Configuration ---
 # For a local MongoDB, this might be: "mongodb://localhost:27017/"
-ATLAS_URI: Optional[str] = config.get("MONGO_URI")
-DB_NAME: Optional[str] = config.get("DB_NAME")
+ATLAS_URI: Optional[str] = os.environ.get("MONGO_URI")
+DB_NAME: Optional[str] = os.environ.get("DB_NAME")
 
 if not ATLAS_URI:
     raise RuntimeError("MONGO_URI environment variable is not set")

@@ -1,6 +1,36 @@
 # QuickPoll-inator
 Real-Time Opinion Polling Platform
 
+## Live Frontend
+https://quickpoll-inator.netlify.app/
+(need to stitch it to backend)
+
+## Environment variables
+
+### Frontend (Next.js)
+- `NEXT_PUBLIC_API_URL` — Base HTTP(S) URL of the API.
+  - Example (local): `http://127.0.0.1:8000`
+  - Example (prod): `https://your-api.example.com`
+- `NEXT_PUBLIC_WS_URL` — WebSocket URL for realtime updates.
+  - Example (local): `ws://127.0.0.1:8000/ws`
+  - Example (prod): `wss://your-api.example.com/ws`
+
+Where to set:
+- Local dev: create `.env.local` in `quick-poll-inator/`
+- Netlify: Site settings → Environment variables
+
+### Backend (FastAPI)
+- `MONGO_URI` — MongoDB connection string (required)
+  - Example: `mongodb+srv://<user>:<pass>@cluster0.abcde.mongodb.net/`
+- `DB_NAME` — MongoDB database name
+  - Example: `quickpoll`
+- `FRONTEND_URL` — Allowed origin for CORS
+  - Example (local): `http://localhost:3000`
+  - Example (prod): `https://quickpoll-inator.netlify.app`
+
+Where to set:
+- Create `backend/.env` with the above keys. The app loads it via `python-dotenv`.
+
 ## Run the project locally
 
 This repo has two apps:

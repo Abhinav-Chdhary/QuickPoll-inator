@@ -81,10 +81,71 @@ async def create_like_action_in_db(like_data: dict):
     result = await poll_like_actions_collection.insert_one(like_data)
     return result
 
+
 # Delete a poll like action from the database by its _id
 async def delete_like_action_in_db(like_id: PyObjectId):
     """Delete a poll like action from the database by its _id."""
     db = get_database()
     poll_like_actions_collection = db["poll_like_actions"]
     result = await poll_like_actions_collection.delete_one({"_id": like_id})
+    return result
+
+
+# POLL OPTION
+async def create_poll_option_in_db(option_data: dict):
+    """Insert a new poll option into the database."""
+    db = get_database()
+    poll_options_collection = db["poll_options"]
+    result = await poll_options_collection.insert_one(option_data)
+    return result
+
+
+async def get_poll_option_by_id_from_db(option_id: PyObjectId):
+    """Get a poll option from the database by id."""
+    db = get_database()
+    poll_options_collection = db["poll_options"]
+    option = await poll_options_collection.find_one({"_id": option_id})
+    return option
+
+
+async def update_poll_option_votes_in_db(option_id: PyObjectId, increment: int):
+    """Update a poll option's vote count."""
+    db = get_database()
+    poll_options_collection = db["poll_options"]
+    result = await poll_options_collection.update_one(
+        {"_id": option_id}, {"$inc": {"votes": increment}}
+    )
+    return result
+
+
+# POLL VOTE ACTION
+async def get_vote_action_by_poll_from_db(user_id: str, poll_id: str):
+    """
+    Find if a user has already voted on *any* option in this poll.
+    Returns the single vote action document if it exists.
+    """
+    db = get_database()
+    poll_vote_actions_collection = db["poll_vote_actions"]
+    vote_action = await poll_vote_actions_collection.find_one(
+        {"user_id": user_id, "poll_id": poll_id}
+    )
+    # Also add the PyObjectId version for convenience in the router
+    if vote_action:
+        vote_action["poll_option_id_obj"] = PyObjectId(vote_action["poll_option_id"])
+    return vote_action
+
+
+async def create_vote_action_in_db(vote_data: dict):
+    """Insert a new poll vote action into the database."""
+    db = get_database()
+    poll_vote_actions_collection = db["poll_vote_actions"]
+    result = await poll_vote_actions_collection.insert_one(vote_data)
+    return result
+
+
+async def delete_vote_action_in_db(vote_id: PyObjectId):
+    """Delete a poll vote action from the database by its _id."""
+    db = get_database()
+    poll_vote_actions_collection = db["poll_vote_actions"]
+    result = await poll_vote_actions_collection.delete_one({"_id": vote_id})
     return result

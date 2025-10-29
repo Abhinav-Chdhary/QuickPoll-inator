@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     """
     print("Application startup...")
     # Initialize and test the MongoDB connection
-    startup_client()
+    await startup_client()
     try:
         yield
     finally:

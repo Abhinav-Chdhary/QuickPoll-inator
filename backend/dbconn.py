@@ -22,7 +22,7 @@ db = None
 
 
 # Function to initialize and test the MongoDB connection
-def startup_client():
+async def startup_client():
     """Initializes and tests the MongoDB connection."""
     global client, db
     try:
@@ -31,7 +31,7 @@ def startup_client():
         db = client[DB_NAME]
 
         # The 'ping' command tests the connection
-        client.admin.command("ping")
+        await client.admin.command("ping")
         print("✅ Successfully connected to MongoDB.")
 
     # Catch any other unexpected error

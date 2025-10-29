@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
+from contextlib import asynccontextmanager
 
 # Internal imports
 from dbconn import startup_client, close_client
@@ -11,8 +12,26 @@ from routers import users, polls, websocket
 # Load env variables
 load_dotenv()
 
+
+# Define the Lifespan Manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Manage startup and shutdown events.
+    """
+    print("Application startup...")
+    # Initialize and test the MongoDB connection
+    startup_client()
+    try:
+        yield
+    finally:
+        # Close the MongoDB connection
+        print("Application shutdown...")
+        close_client()
+
+
 # FastAPI App Initialization
-app = FastAPI(title="QuickPoll API")
+app = FastAPI(title="QuickPoll API", lifespan=lifespan)
 
 # Include routers
 app.include_router(users.router)
@@ -30,21 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# MongoDB connection events
-@app.on_event("startup")
-async def startup_event():
-    """FastAPI startup event handler."""
-    # Initialize and test the MongoDB connection
-    startup_client()
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """FastAPI shutdown event handler."""
-    # Close the MongoDB connection
-    close_client()
 
 
 # Example Route

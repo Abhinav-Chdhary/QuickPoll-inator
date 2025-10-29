@@ -3,7 +3,6 @@ Real-Time Opinion Polling Platform
 
 ## Live Frontend
 https://quickpoll-inator.netlify.app/
-(need to stitch it to backend)
 
 ## Environment variables
 

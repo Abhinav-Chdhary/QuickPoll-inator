@@ -5,10 +5,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
-from dotenv import dotenv_values
+from dotenv import load_dotenv
+import os
 
-# Load environment variables
-config = dotenv_values(".env")
+# Load env variables
+load_dotenv()
 
 # Password hashing configuration using pwdlib
 pwd_hash = PasswordHash(
@@ -18,7 +19,7 @@ pwd_hash = PasswordHash(
 )
 
 # JWT Configuration
-SECRET_KEY: Optional[str] = config.get("SECRET_KEY")
+SECRET_KEY: Optional[str] = os.environ.get("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 

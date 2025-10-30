@@ -1,6 +1,8 @@
 # QuickPoll-inator
 Real-Time Opinion Polling Platform
 
+[![A video thumbnail for the project walkthrough](https://img.youtube.com/vi/svFha1BtvtI/maxresdefault.jpg)](https://www.youtube.com/watch?v=svFha1BtvtI "Watch the Project Walkthrough")
+
 ## Live Frontend
 https://quickpoll-inator.netlify.app/
 
